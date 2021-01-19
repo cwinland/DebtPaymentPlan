@@ -11,6 +11,6 @@ namespace DebtPlannerTests
         protected readonly DebtInfo a4 = new DebtInfo("E", 2000, 15.55, 200);
         protected readonly DebtInfo a5 = new DebtInfo("F", 1000, 22, 50);
         protected readonly DebtInfo a6 = new DebtInfo("G", 500, 22, 50);
-        protected readonly DebtInfo a7 = new DebtInfo("H", 0, 50.3, 1000);
+        protected readonly DebtInfo a7 = new DebtInfo("H", 0, 50.3, 250);
     }
 }

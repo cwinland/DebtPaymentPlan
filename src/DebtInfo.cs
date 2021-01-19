@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DebtPlanner
 {
@@ -11,7 +12,7 @@ namespace DebtPlanner
         public double Balance { get; private set; }
         private double rate;
         public double Rate { get => Balance <= CurrentPayment ? 0 : rate; private set => rate = value; }
-
+        public double OriginalMinimum => minimum;
         private double minimum;
         public double Minimum { get => Math.Min(Balance, minimum); private set => minimum = value; }
         public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? (decimal)Minimum / (decimal)Balance : 0;
@@ -19,6 +20,7 @@ namespace DebtPlanner
         public decimal DailyPr => Rate > 0 ? (decimal)Rate / 100 / 365 : 0;
         public decimal AverageMonthyPr => Rate > 0 ? (decimal)Rate / 100 / 12 : 0;
         public decimal DailyInterest => DailyPr * (decimal)Balance;
+
         public double AverageMonthlyInterest => RoundUp((double)(AverageMonthyPr * (decimal)Balance), 2);
 
         public double CurrentPayment => Balance > 0 ? Minimum + AdditionalPayment : 0;
@@ -67,16 +69,44 @@ namespace DebtPlanner
             return Math.Ceiling(input * multiplier) / multiplier;
         }
 
-        public List<DebtAmortizationItem> GetAmortization()
+        public List<DebtAmortizationItem> GetAmortization(
+            int? numberOfPayments = null, List<Tuple<int, double>> additionalPayments = null)
         {
             var result = new List<DebtAmortizationItem>();
             var currentDebt = this;
+            var paymentsMade = 0;
 
-            while (currentDebt.Balance > 0)
+            if (additionalPayments == null)
             {
+                additionalPayments = new List<Tuple<int, double>>();
+            }
+
+            var additionalPayment = additionalPayments.OrderBy(x => x.Item1).FirstOrDefault();
+
+            if (additionalPayment != null &&
+                GetAmortization().Count <= additionalPayment.Item1)
+            {
+                return GetAmortization();
+            }
+
+            while (currentDebt.Balance > 0 &&
+                   (!numberOfPayments.HasValue || numberOfPayments > 0))
+            {
+                if (additionalPayment != null &&
+                    additionalPayment.Item1 == paymentsMade)
+                {
+                    currentDebt.AdditionalPayment += additionalPayment.Item2;
+                }
+
                 var debtAmortizationItem = new DebtAmortizationItem(currentDebt);
                 result.Add(debtAmortizationItem);
                 currentDebt = debtAmortizationItem.debtInfo;
+                paymentsMade++;
+
+                if (numberOfPayments.HasValue)
+                {
+                    numberOfPayments--;
+                }
             }
 
             return result;

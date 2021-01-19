@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using DebtPlanner;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -45,6 +46,36 @@ namespace DebtPlannerTests
         }
 
         [TestMethod]
+        [DataRow(7, 0)]
+        [DataRow(4, 1)]
+        [DataRow(6, 2)]
+        [DataRow(5, 3)]
+        [DataRow(2, 4)]
+        [DataRow(0, 5)]
+        [DataRow(1, 6)]
+        [DataRow(3, 7)]
+        public void OrderedNumberOfPayments(int pIndex, int orderedIndex)
+        {
+            var p = CreatePortfolio();
+            var x = p.OrderBy(info => info.GetAmortization().Count).ToList();
+            x[orderedIndex].Should().Be(p[pIndex]);
+        }
+
+        [TestMethod]
+        public void FirstNonZero()
+        {
+            var p = CreatePortfolio();
+            var paidInfo = p.Where(info => info.Balance == 0).ToList();
+            var paid = paidInfo.Sum(info => info.OriginalMinimum);
+            var x = p.Where(info => info.Balance > 0).OrderBy(info => info.GetAmortization().Count).First();
+            x.Should().Be(a4);
+            var originalA = a4.GetAmortization();
+            a4.AdditionalPayment = paid;
+            var newA = a4.GetAmortization();
+            originalA.Count.Should().NotBe(newA.Count);
+        }
+
+        [TestMethod]
         public void PayoffMonths_Max()
         {
             var p = CreatePortfolio();
@@ -58,6 +89,34 @@ namespace DebtPlannerTests
             var p = CreatePortfolio();
             p.Min(info => info.PayoffMonths).Should().Be(a7.PayoffMonths);
             p.Where(x => x.Balance > 0).Min(info => info.PayoffMonths).Should().Be(a4.PayoffMonths);
+        }
+
+        [TestMethod]
+        public void Test()
+        {
+            var p = CreatePortfolio();
+            var list = p.GetAmortization();
+
+            foreach (var (debtInfo, debtAmortizationItems) in list)
+            {
+                Console.WriteLine($"\n{debtInfo}");
+                Console.WriteLine($"\nMax Payment: {debtAmortizationItems.Max(f => f.Payment)}");
+                Console.WriteLine($"Number Payments: {debtAmortizationItems.Count}\n");
+
+                for (var i = 0; i < debtAmortizationItems.Count; i++)
+                {
+                    var paymentNum = i + 1;
+                    Console.WriteLine($"Payment {paymentNum,3}: {debtAmortizationItems[i]}");
+                }
+            }
+
+            var maxPayments = list.Values.ToList().Max(x => x.Count);
+
+            for (var i = 0; i < maxPayments; i++)
+            {
+                var paymentNum = i + 1;
+                Console.WriteLine($"Payment {paymentNum,3}: {list.Values.Max(x => x.Count > i ? x[i].Payment : 0)}");
+            }
         }
     }
 }
