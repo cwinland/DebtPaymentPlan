@@ -6,38 +6,37 @@ namespace DebtPlanner
 {
     public class DebtInfo
     {
-        private readonly double originalBalance;
-
+        private readonly decimal minPaymentMultiplier = 1.5M;
         public string Name { get; }
-        public double Balance { get => balance; private set => balance = Math.Round(value, 2); }
-        private double rate;
-        public double Rate { get => rate; private set => rate = value; }
+        public decimal Balance { get => balance; private set => balance = Math.Round(value, 2); }
+        private decimal rate;
+        public decimal Rate { get => rate; private set => rate = value; }
 
-        public double OriginalMinimum => minimum;
+        public decimal OriginalMinimum => minimum;
 
-        private double minimum;
-        private double balance;
+        private decimal minimum;
+        private decimal balance;
 
-        public double Minimum
+        public decimal Minimum
         {
             get => Math.Min(Balance,
                             ForceMinPayment
-                                ? Math.Max(AverageMonthlyInterest * 1.5, OriginalMinimum)
+                                ? Math.Max(AverageMonthlyInterest * minPaymentMultiplier, OriginalMinimum)
                                 : OriginalMinimum);
             private set => minimum = Math.Round(value, 2);
         }
 
         public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? (decimal)Minimum / (decimal)Balance : 0;
-        public double AdditionalPayment { get; set; } = 0;
+        public decimal AdditionalPayment { get; set; }
         public decimal DailyPr => Rate > 0 ? (decimal)Rate / 100 / 365 : 0;
         public decimal AverageMonthyPr => Rate > 0 ? (decimal)Rate / 100 / 12 : 0;
         public decimal DailyInterest => DailyPr * (decimal)Balance;
         public bool ForceMinPayment { get; set; }
-        public double AverageMonthlyInterest => RoundUp((double)(AverageMonthyPr * (decimal)Balance), 2);
+        public decimal AverageMonthlyInterest => RoundUp(AverageMonthyPr * Balance, 2);
 
-        public double CurrentPayment => Balance > 0 ? Math.Min(Minimum + AdditionalPayment, Balance) : 0;
+        public decimal CurrentPayment => Balance > 0 ? Math.Min(Minimum + AdditionalPayment, Balance) : 0;
 
-        public double CurrentPaymentReduction => CurrentPayment > 0 ? CurrentPayment - AverageMonthlyInterest : 0;
+        public decimal CurrentPaymentReduction => CurrentPayment > 0 ? CurrentPayment - AverageMonthlyInterest : 0;
 
         public int PayoffMonths => Balance > 0
             ? (int)Math.Ceiling(Balance / CurrentPaymentReduction)
@@ -47,13 +46,15 @@ namespace DebtPlanner
             ? (int)Math.Ceiling(Balance / (CurrentPaymentReduction / 12))
             : 0;
 
-        public DebtInfo(string name, double balance, double rate, double minPayment, bool forceMinPayment = true)
+        //public DebtInfo(string name, double balance, double rate, double minPayment, bool forceMinPayment = true) :
+        //    this(name, (decimal)balance, (decimal)rate, (decimal)minPayment, forceMinPayment) { }
+
+        public DebtInfo(string name, decimal balance, decimal rate, decimal minPayment, bool forceMinPayment = true)
         {
             ForceMinPayment = forceMinPayment;
 
             Name = name;
             Balance = balance;
-            originalBalance = Balance;
             Rate = rate;
             Minimum = minPayment;
 
@@ -81,9 +82,7 @@ namespace DebtPlanner
             return this;
         }
 
-        public static double RoundUp(decimal input, int places) => RoundUp((double)input, places);
-
-        public static double RoundUp(double input, int places)
+        public static decimal RoundUp(decimal input, int places)
         {
             var multiplier = (int)Math.Ceiling(Math.Pow(10, Convert.ToDouble(places)));
 
@@ -91,7 +90,7 @@ namespace DebtPlanner
         }
 
         public DebtAmortization GetAmortization(
-            int? numberOfPayments = null, List<Tuple<int, double>> additionalPayments = null)
+            int? numberOfPayments = null, List<Tuple<int, decimal>> additionalPayments = null)
         {
             var result = new DebtAmortization();
             var currentDebt = this;
@@ -99,7 +98,7 @@ namespace DebtPlanner
 
             if (additionalPayments == null)
             {
-                additionalPayments = new List<Tuple<int, double>>();
+                additionalPayments = new List<Tuple<int, decimal>>();
             }
 
             var additionalPayment = additionalPayments.OrderBy(x => x.Item1).FirstOrDefault();
