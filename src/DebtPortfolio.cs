@@ -34,6 +34,7 @@ namespace DebtPlanner
             {
                 var item = orderedList[0];
                 var am = item.GetAmortization(null, additionalAmounts);
+                item.AdditionalPayment = am.Max(x => x.Payment) - item.Minimum;
                 amList.Add(item, am);
                 workingAmount += item.OriginalMinimum;
                 additionalAmounts = new List<Tuple<int, double>> { new Tuple<int, double>(am.Count, workingAmount), };

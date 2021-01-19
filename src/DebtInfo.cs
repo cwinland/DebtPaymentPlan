@@ -23,7 +23,7 @@ namespace DebtPlanner
 
         public double AverageMonthlyInterest => RoundUp((double)(AverageMonthyPr * (decimal)Balance), 2);
 
-        public double CurrentPayment => Balance > 0 ? Minimum + AdditionalPayment : 0;
+        public double CurrentPayment => Balance > 0 ? Math.Min(Minimum + AdditionalPayment, Balance) : 0;
 
         public double CurrentPaymentReduction => CurrentPayment > 0 ? CurrentPayment - AverageMonthlyInterest : 0;
 
@@ -113,9 +113,9 @@ namespace DebtPlanner
         }
 
         /// <inheritdoc />
-        public override string ToString() => $"{Name}\n" +
-                                             $"{"Balance".PadRight(12)} | % Rate | Minimum\n" +
-                                             "-------------------------------\n" +
-                                             $"{Balance,12:C} | {Rate,5}% | {Minimum,7:C}";
+        public override string ToString() => $"Name: {Name}\n" +
+                                             $"{"Balance".PadRight(12)} | % Rate | Minimum | Max Payment\n" +
+                                             "---------------------------------------------\n" +
+                                             $"{Balance,12:C} | {Rate,5}% | {Minimum,7:C} | {CurrentPayment,11:C}";
     }
 }

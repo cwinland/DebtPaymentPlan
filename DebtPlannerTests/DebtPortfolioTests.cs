@@ -100,8 +100,7 @@ namespace DebtPlannerTests
             foreach (var (debtInfo, debtAmortizationItems) in list)
             {
                 Console.WriteLine($"\n{debtInfo}");
-                Console.WriteLine($"\nMax Payment: {debtAmortizationItems.Max(f => f.Payment)}");
-                Console.WriteLine($"Number Payments: {debtAmortizationItems.Count}\n");
+                Console.WriteLine($"\nNumber Payments: {debtAmortizationItems.Count}\n");
 
                 for (var i = 0; i < debtAmortizationItems.Count; i++)
                 {
@@ -112,11 +111,16 @@ namespace DebtPlannerTests
 
             var maxPayments = list.Values.ToList().Max(x => x.Count);
 
+            Console.WriteLine("");
+
             for (var i = 0; i < maxPayments; i++)
             {
                 var paymentNum = i + 1;
-                Console.WriteLine($"Payment {paymentNum,3}: {list.Values.Max(x => x.Count > i ? x[i].Payment : 0)}");
+                Console.WriteLine(
+                    $"Payment {paymentNum,3}: {list.Values.Sum(x => x.Count > i ? x[i].Payment : 0),11:C}");
             }
+
+            Console.WriteLine($"{"Total",11}: {list.Values.Sum(x => x.Sum(y => y.Payment)),11:C}");
         }
     }
 }
