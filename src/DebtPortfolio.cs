@@ -7,7 +7,48 @@ namespace DebtPlanner
 {
     public class DebtPortfolio : List<DebtInfo>
     {
-        public Dictionary<DebtInfo, DebtAmortization> GetAmortization()
+        public virtual string Header
+        {
+            get
+            {
+                var builder = new StringBuilder();
+
+                foreach (var keyValuePair in GetAmortization())
+                {
+                    var debtInfo = keyValuePair.Key;
+                    var debtAmortization = keyValuePair.Value;
+                    builder.AppendLine($"\n{debtInfo}");
+                    builder.AppendLine($"\nNumber Payments: {debtAmortization.Count}\n");
+                    builder.AppendLine(debtAmortization.ToString());
+                }
+
+                return builder.ToString();
+            }
+        }
+
+        public virtual string Payments
+        {
+            get
+            {
+                var list = GetAmortization();
+                var builder = new StringBuilder();
+
+                var maxPayments = list.Values.ToList().Max(x => x.Count);
+
+                for (var i = 0; i < maxPayments; i++)
+                {
+                    var paymentNum = i + 1;
+                    builder.AppendLine(
+                        $"Payment {paymentNum,3}: {list.Values.Sum(x => x.Count > i ? x[i].Payment : 0),11:C}");
+                }
+
+                builder.AppendLine($"{"Total",11}: {list.Values.Sum(x => x.Sum(y => y.Payment)),11:C}");
+
+                return builder.ToString();
+            }
+        }
+
+        public virtual Dictionary<DebtInfo, DebtAmortization> GetAmortization()
         {
             var amList = new Dictionary<DebtInfo, DebtAmortization>();
             var orderedList = new SortedList<int, DebtInfo>();
@@ -43,47 +84,6 @@ namespace DebtPlanner
             }
 
             return amList;
-        }
-
-        public string Header
-        {
-            get
-            {
-                var builder = new StringBuilder();
-
-                foreach (var keyValuePair in GetAmortization())
-                {
-                    var debtInfo = keyValuePair.Key;
-                    var debtAmortization = keyValuePair.Value;
-                    builder.AppendLine($"\n{debtInfo}");
-                    builder.AppendLine($"\nNumber Payments: {debtAmortization.Count}\n");
-                    builder.AppendLine(debtAmortization.ToString());
-                }
-
-                return builder.ToString();
-            }
-        }
-
-        public string Payments
-        {
-            get
-            {
-                var list = GetAmortization();
-                var builder = new StringBuilder();
-
-                var maxPayments = list.Values.ToList().Max(x => x.Count);
-
-                for (var i = 0; i < maxPayments; i++)
-                {
-                    var paymentNum = i + 1;
-                    builder.AppendLine(
-                        $"Payment {paymentNum,3}: {list.Values.Sum(x => x.Count > i ? x[i].Payment : 0),11:C}");
-                }
-
-                builder.AppendLine($"{"Total",11}: {list.Values.Sum(x => x.Sum(y => y.Payment)),11:C}");
-
-                return builder.ToString();
-            }
         }
 
         /// <inheritdoc />

@@ -126,5 +126,25 @@ namespace DebtPlannerTests
             var pay3 = p.Payments;
             pay2.Should().Be(pay3);
         }
+
+        [TestMethod]
+        public void Test()
+        {
+            var portfolio = new DebtPortfolio
+            {
+                new DebtInfo("A", 16345.44M, 3.25M, 225),
+                new DebtInfo("B", 12000, 0, 125),
+                new DebtInfo("C", 6000, 3.5M, 182),
+                new DebtInfo("D", 4000, 12.25M, 50),
+                new DebtInfo("E", 2000, 15.55M, 200),
+                new DebtInfo("F", 1000, 22, 50),
+                new DebtInfo("G", 500, 22, 50),
+                new DebtInfo("H", 10, 50.3M, 250),
+                new DebtInfo("I", balance: 13000, 12, 100),
+            };
+
+            var schedule = portfolio.ToString();
+            Console.WriteLine(schedule);
+        }
     }
 }

@@ -3,7 +3,8 @@ using System.Text;
 
 namespace DebtPlanner
 {
-    public class DebtAmortization : List<DebtAmortizationItem> {
+    public class DebtAmortization : List<DebtAmortizationItem>
+    {
         /// <inheritdoc />
         public override string ToString()
         {

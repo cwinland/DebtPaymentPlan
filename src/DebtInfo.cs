@@ -7,15 +7,17 @@ namespace DebtPlanner
     public class DebtInfo
     {
         private readonly decimal minPaymentMultiplier = 1.5M;
+        private decimal balance;
+
+        private decimal minimum;
+        private decimal rate;
+        public decimal AdditionalPayment { get; set; }
+        public bool ForceMinPayment { get; set; }
         public string Name { get; }
         public decimal Balance { get => balance; private set => balance = Math.Round(value, 2); }
-        private decimal rate;
         public decimal Rate { get => rate; private set => rate = value; }
 
         public decimal OriginalMinimum => minimum;
-
-        private decimal minimum;
-        private decimal balance;
 
         public decimal Minimum
         {
@@ -26,12 +28,10 @@ namespace DebtPlanner
             private set => minimum = Math.Round(value, 2);
         }
 
-        public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? (decimal)Minimum / (decimal)Balance : 0;
-        public decimal AdditionalPayment { get; set; }
-        public decimal DailyPr => Rate > 0 ? (decimal)Rate / 100 / 365 : 0;
-        public decimal AverageMonthyPr => Rate > 0 ? (decimal)Rate / 100 / 12 : 0;
-        public decimal DailyInterest => DailyPr * (decimal)Balance;
-        public bool ForceMinPayment { get; set; }
+        public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? Minimum / Balance : 0;
+        public decimal DailyPr => Rate > 0 ? Rate / 100 / 365 : 0;
+        public decimal AverageMonthyPr => Rate > 0 ? Rate / 100 / 12 : 0;
+        public decimal DailyInterest => DailyPr * Balance;
         public decimal AverageMonthlyInterest => RoundUp(AverageMonthyPr * Balance, 2);
 
         public decimal CurrentPayment => Balance > 0 ? Math.Min(Minimum + AdditionalPayment, Balance) : 0;
@@ -45,9 +45,6 @@ namespace DebtPlanner
         public int PayoffDays => Balance > 0
             ? (int)Math.Ceiling(Balance / (CurrentPaymentReduction / 12))
             : 0;
-
-        //public DebtInfo(string name, double balance, double rate, double minPayment, bool forceMinPayment = true) :
-        //    this(name, (decimal)balance, (decimal)rate, (decimal)minPayment, forceMinPayment) { }
 
         public DebtInfo(string name, decimal balance, decimal rate, decimal minPayment, bool forceMinPayment = true)
         {
@@ -76,7 +73,7 @@ namespace DebtPlanner
         public DebtInfo ResetMinimum()
         {
             var minPercent = MinimumPercent;
-            var newMin = (decimal)Balance * minPercent;
+            var newMin = Balance * minPercent;
             Minimum = RoundUp(newMin, 2);
 
             return this;
@@ -89,7 +86,7 @@ namespace DebtPlanner
             return Math.Ceiling(input * multiplier) / multiplier;
         }
 
-        public DebtAmortization GetAmortization(
+        public virtual DebtAmortization GetAmortization(
             int? numberOfPayments = null, List<Tuple<int, decimal>> additionalPayments = null)
         {
             var result = new DebtAmortization();

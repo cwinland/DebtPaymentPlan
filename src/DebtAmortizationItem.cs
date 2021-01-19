@@ -2,15 +2,14 @@
 {
     public class DebtAmortizationItem
     {
+        public readonly DebtInfo debtInfo;
+        public decimal Payment { get; }
         private decimal CurrentBalance { get; }
         private decimal MonthlyRate { get; }
         public string Name => debtInfo.Name;
-        public decimal Payment { get; }
         public decimal Interest => DebtInfo.RoundUp(MonthlyRate * CurrentBalance, 2);
         public decimal AppliedPayment => Payment - Interest;
-        public decimal RemainingBalance => (decimal)(CurrentBalance - AppliedPayment);
-
-        public readonly DebtInfo debtInfo;
+        public decimal RemainingBalance => CurrentBalance - AppliedPayment;
 
         public DebtAmortizationItem(DebtInfo debt)
         {

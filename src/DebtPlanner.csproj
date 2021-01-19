@@ -1,7 +1,52 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageId>DebtPlannerPayoff</PackageId>
+    <Description>Create amortization schedule and optimization intelligence for quick payoff.
+  - Order the debt so the bulk of the payments go toward the debt that will be paid off earlier.
+  - As each card is paid off, that money is combined and added to the next card to be paid off quickly.
+- Payment Statistics: Number of payments, range, utilization, APRs, etc.</Description>
+    <Copyright>Copyright(c) 2021 Christopher Winland</Copyright>
+	<Company>Microsoft</Company>
+	<Authors>Christopher Winland</Authors>
+    <PackageLicenseExpression></PackageLicenseExpression>
+    <PackageProjectUrl></PackageProjectUrl>
+	<Title>Debt Amortization and Payoff Intelligence Manager</Title>
+    <RepositoryUrl>https://github.com/cwinland/DebtPaymentPlan</RepositoryUrl>
+    <RepositoryType>GitHub</RepositoryType>
+    <PackageTags>calculator, planner, intelligence, debt, management, payoff, amortization, debt-calculator, prioritization</PackageTags>
   </PropertyGroup>
-
+	<PropertyGroup>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<AssemblyVersion>1.$([System.DateTime]::Now.ToString("y.MM.ddHH"))</AssemblyVersion>
+		<FileVersion>1.$([System.DateTime]::Now.ToString("y.MM.ddHH"))</FileVersion>
+		<Version>1.$([System.DateTime]::Now.ToString("y.MM.ddHH"))</Version>
+	</PropertyGroup>
+	<PropertyGroup>
+		<GenerateNuspecDependsOn>$(GenerateNuspecDependsOn);SetPackageVersion</GenerateNuspecDependsOn>
+		<Product>Debt Amortization and Payoff Intelligence Manager</Product>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+	</PropertyGroup>
+	<Target Name="SetPackageVersion">
+		<PropertyGroup>
+			<!-- <PackageVersion>$([System.DateTime]::Now.ToString(&quot;yyyy.MM.dd.HHmmss&quot;))</PackageVersion> -->
+			<!-- You can customize the format and the rule about how version increases here. -->
+			<PackageVersion>1.$([System.DateTime]::Now.ToString("y.MM.ddHH"))</PackageVersion>
+		</PropertyGroup>
+	</Target>
+	<ItemGroup>
+	  <Compile Include="DebtAmortization.cs" />
+	  <Compile Include="DebtAmortizationItem.cs" />
+	  <Compile Include="DebtInfo.cs" />
+	  <Compile Include="DebtPortfolio.cs" />
+	</ItemGroup>
+	<ItemGroup>
+	  <None Include="..\LICENSE">
+	    <Pack>True</Pack>
+	    <PackagePath></PackagePath>
+	  </None>
+	</ItemGroup>
 </Project>
