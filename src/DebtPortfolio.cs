@@ -1,28 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace DebtPlanner
 {
     public class DebtPortfolio : List<DebtInfo>
     {
-        public List<DebtInfo> PaidList => this.Where(info => info.Balance == 0).ToList();
-        public List<DebtInfo> UnPaidList => this.Where(info => info.Balance > 0).ToList();
-
-        public List<List<DebtAmortizationItem>> Amortizations =>
-            UnPaidList.Select(info => info.GetAmortization()).ToList();
-
-        public double AmountPaid => PaidList.Sum(info => info.OriginalMinimum);
-        public int MaxLength => UnPaidList.Max(x => x.GetAmortization().Count);
-
-        public Dictionary<DebtInfo, List<DebtAmortizationItem>> GetAmortization()
+        public Dictionary<DebtInfo, DebtAmortization> GetAmortization()
         {
-            // Get First Am
-            // Get Second Am
-            // Change Second Am starting after last First Am
-            var amList = new Dictionary<DebtInfo, List<DebtAmortizationItem>>();
-            var orderedList = UnPaidList.OrderBy(info => info.GetAmortization().Count).ToList();
-            var working = orderedList[0];
+            var amList = new Dictionary<DebtInfo, DebtAmortization>();
+            var orderedList = new SortedList<int, DebtInfo>();
+            this.Where(info => info.Balance > 0)
+                .ToList()
+                .ForEach(x =>
+                         {
+                             var item = new DebtInfo(x.Name,
+                                                     x.Balance,
+                                                     x.Rate,
+                                                     x.OriginalMinimum,
+                                                     x.ForceMinPayment);
+                             var aCount = item.GetAmortization().Count;
+                             orderedList.Add(aCount, item);
+                         });
+            var working = orderedList.FirstOrDefault().Value;
             var workingAm = working.GetAmortization();
             var workingAmount = working.OriginalMinimum;
             var additionalAmounts =
@@ -32,7 +33,7 @@ namespace DebtPlanner
 
             while (orderedList.Count > 0)
             {
-                var item = orderedList[0];
+                var item = orderedList.FirstOrDefault().Value;
                 var am = item.GetAmortization(null, additionalAmounts);
                 item.AdditionalPayment = am.Max(x => x.Payment) - item.Minimum;
                 amList.Add(item, am);
@@ -42,6 +43,60 @@ namespace DebtPlanner
             }
 
             return amList;
+        }
+
+        public string Header
+        {
+            get
+            {
+                var builder = new StringBuilder();
+
+                foreach (var keyValuePair in GetAmortization())
+                {
+                    var debtInfo = keyValuePair.Key;
+                    var debtAmortization = keyValuePair.Value;
+                    builder.AppendLine($"\n{debtInfo}");
+                    builder.AppendLine($"\nNumber Payments: {debtAmortization.Count}\n");
+                    builder.AppendLine(debtAmortization.ToString());
+                }
+
+                return builder.ToString();
+            }
+        }
+
+        public string Payments
+        {
+            get
+            {
+                var list = GetAmortization();
+                var builder = new StringBuilder();
+
+                var maxPayments = list.Values.ToList().Max(x => x.Count);
+
+                for (var i = 0; i < maxPayments; i++)
+                {
+                    var paymentNum = i + 1;
+                    builder.AppendLine(
+                        $"Payment {paymentNum,3}: {list.Values.Sum(x => x.Count > i ? x[i].Payment : 0),11:C}");
+                }
+
+                builder.AppendLine($"{"Total",11}: {list.Values.Sum(x => x.Sum(y => y.Payment)),11:C}");
+
+                return builder.ToString();
+            }
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+
+            builder.AppendLine(Header);
+
+            builder.AppendLine("");
+            builder.AppendLine(Payments);
+
+            return builder.ToString();
         }
     }
 }

@@ -9,18 +9,30 @@ namespace DebtPlanner
         private readonly double originalBalance;
 
         public string Name { get; }
-        public double Balance { get; private set; }
+        public double Balance { get => balance; private set => balance = Math.Round(value, 2); }
         private double rate;
-        public double Rate { get => Balance <= CurrentPayment ? 0 : rate; private set => rate = value; }
+        public double Rate { get => rate; private set => rate = value; }
+
         public double OriginalMinimum => minimum;
+
         private double minimum;
-        public double Minimum { get => Math.Min(Balance, minimum); private set => minimum = value; }
+        private double balance;
+
+        public double Minimum
+        {
+            get => Math.Min(Balance,
+                            ForceMinPayment
+                                ? Math.Max(AverageMonthlyInterest * 1.5, OriginalMinimum)
+                                : OriginalMinimum);
+            private set => minimum = Math.Round(value, 2);
+        }
+
         public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? (decimal)Minimum / (decimal)Balance : 0;
         public double AdditionalPayment { get; set; } = 0;
         public decimal DailyPr => Rate > 0 ? (decimal)Rate / 100 / 365 : 0;
         public decimal AverageMonthyPr => Rate > 0 ? (decimal)Rate / 100 / 12 : 0;
         public decimal DailyInterest => DailyPr * (decimal)Balance;
-
+        public bool ForceMinPayment { get; set; }
         public double AverageMonthlyInterest => RoundUp((double)(AverageMonthyPr * (decimal)Balance), 2);
 
         public double CurrentPayment => Balance > 0 ? Math.Min(Minimum + AdditionalPayment, Balance) : 0;
@@ -35,13 +47,22 @@ namespace DebtPlanner
             ? (int)Math.Ceiling(Balance / (CurrentPaymentReduction / 12))
             : 0;
 
-        public DebtInfo(string name, double balance, double rate, double minPayment)
+        public DebtInfo(string name, double balance, double rate, double minPayment, bool forceMinPayment = true)
         {
+            ForceMinPayment = forceMinPayment;
+
             Name = name;
             Balance = balance;
             originalBalance = Balance;
             Rate = rate;
             Minimum = minPayment;
+
+            if (Balance > CurrentPayment &&
+                CurrentPayment <= AverageMonthlyInterest)
+            {
+                throw new ArgumentOutOfRangeException(nameof(minPayment),
+                                                      $"Current Payment ({CurrentPayment} is too low to pay the interest of {AverageMonthlyInterest}. ");
+            }
         }
 
         public DebtInfo ApplyPayment()
@@ -69,10 +90,10 @@ namespace DebtPlanner
             return Math.Ceiling(input * multiplier) / multiplier;
         }
 
-        public List<DebtAmortizationItem> GetAmortization(
+        public DebtAmortization GetAmortization(
             int? numberOfPayments = null, List<Tuple<int, double>> additionalPayments = null)
         {
-            var result = new List<DebtAmortizationItem>();
+            var result = new DebtAmortization();
             var currentDebt = this;
             var paymentsMade = 0;
 
@@ -86,7 +107,7 @@ namespace DebtPlanner
             if (additionalPayment != null &&
                 GetAmortization().Count <= additionalPayment.Item1)
             {
-                return GetAmortization();
+                return GetAmortization(numberOfPayments);
             }
 
             while (currentDebt.Balance > 0 &&

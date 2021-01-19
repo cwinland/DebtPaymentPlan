@@ -9,7 +9,7 @@ namespace DebtPlannerTests
     [TestClass]
     public class DebtPortfolioTests : TestBase
     {
-        private DebtPortfolio CreatePortfolio() => new DebtPortfolio { a0, a1, a2, a3, a4, a5, a6, a7, };
+        private DebtPortfolio CreatePortfolio() => new DebtPortfolio { a0, a1, a2, a3, a4, a5, a6, a7, b8, };
 
         [TestMethod]
         public void CreatedPortfolio() => CreatePortfolio().Should().NotBeNull();
@@ -34,7 +34,7 @@ namespace DebtPlannerTests
         [DataRow(0, 80)]
         [DataRow(1, 96)]
         [DataRow(2, 35)]
-        [DataRow(3, 168)]
+        [DataRow(3, 109)]
         [DataRow(4, 11)]
         [DataRow(5, 26)]
         [DataRow(6, 12)]
@@ -80,7 +80,7 @@ namespace DebtPlannerTests
         {
             var p = CreatePortfolio();
             var x = p.Max(info => info.PayoffMonths);
-            x.Should().Be(a3.PayoffMonths);
+            x.Should().Be(b8.PayoffMonths);
         }
 
         [TestMethod]
@@ -92,35 +92,39 @@ namespace DebtPlannerTests
         }
 
         [TestMethod]
-        public void Test()
+        public void Amortization_NeverChanges()
         {
             var p = CreatePortfolio();
-            var list = p.GetAmortization();
+            var l = p.GetAmortization();
+            var m = p.GetAmortization();
+            l.ToString().Should().Be(m.ToString());
+        }
 
-            foreach (var (debtInfo, debtAmortizationItems) in list)
-            {
-                Console.WriteLine($"\n{debtInfo}");
-                Console.WriteLine($"\nNumber Payments: {debtAmortizationItems.Count}\n");
+        [TestMethod]
+        public void WriteTest()
+        {
+            var p = CreatePortfolio();
 
-                for (var i = 0; i < debtAmortizationItems.Count; i++)
-                {
-                    var paymentNum = i + 1;
-                    Console.WriteLine($"Payment {paymentNum,3}: {debtAmortizationItems[i]}");
-                }
-            }
+            Console.WriteLine(p);
+        }
 
-            var maxPayments = list.Values.ToList().Max(x => x.Count);
+        [TestMethod]
+        public void ToString_NeverChanges()
+        {
+            var p = CreatePortfolio();
+            var h1 = p.Header;
+            var h2 = p.Header;
+            h1.Should().Be(h2);
 
-            Console.WriteLine("");
+            var pay1 = p.Payments;
+            var pay2 = p.Payments;
 
-            for (var i = 0; i < maxPayments; i++)
-            {
-                var paymentNum = i + 1;
-                Console.WriteLine(
-                    $"Payment {paymentNum,3}: {list.Values.Sum(x => x.Count > i ? x[i].Payment : 0),11:C}");
-            }
+            pay1.Should().Be(pay2);
+            var h3 = p.Header;
+            h2.Should().Be(h3);
 
-            Console.WriteLine($"{"Total",11}: {list.Values.Sum(x => x.Sum(y => y.Payment)),11:C}");
+            var pay3 = p.Payments;
+            pay2.Should().Be(pay3);
         }
     }
 }

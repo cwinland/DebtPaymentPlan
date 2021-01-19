@@ -17,7 +17,7 @@
             debtInfo = debt;
             Payment = debt.CurrentPayment;
             CurrentBalance = debt.Balance;
-            MonthlyRate = debt.AverageMonthyPr;
+            MonthlyRate = Payment >= CurrentBalance ? 0 : debt.AverageMonthyPr;
             debtInfo = new DebtInfo(Name, (double)RemainingBalance, debt.Rate, Payment);
         }
 

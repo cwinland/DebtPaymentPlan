@@ -140,5 +140,16 @@ namespace DebtPlannerTests
                 "\n-------------------------------------------------");
             list.ForEach(Console.WriteLine);
         }
+
+        [TestMethod]
+        public void CheckMinimumPayment()
+        {
+            b8.ForceMinPayment = false;
+            var am = b8.GetAmortization(1)[0];
+            am.AppliedPayment.Should().BeLessThan(am.Interest);
+            b8.ForceMinPayment = true;
+            var am2 = b8.GetAmortization(1)[0];
+            am2.AppliedPayment.Should().BeGreaterOrEqualTo(am.Interest / 2);
+        }
     }
 }
