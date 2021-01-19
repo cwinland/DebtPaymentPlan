@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DebtPlanner
 {
@@ -6,11 +7,13 @@ namespace DebtPlanner
     {
         private readonly double originalBalance;
 
-        public string Name { get; set; }
-        public double Balance { get; set; }
-        public double Rate { get; set; }
+        public string Name { get; }
+        public double Balance { get; private set; }
+        private double rate;
+        public double Rate { get => Balance <= CurrentPayment ? 0 : rate; private set => rate = value; }
+
         private double minimum;
-        public double Minimum { get => Math.Min(Balance, minimum); set => minimum = value; }
+        public double Minimum { get => Math.Min(Balance, minimum); private set => minimum = value; }
         public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? (decimal)Minimum / (decimal)Balance : 0;
         public double AdditionalPayment { get; set; } = 0;
         public decimal DailyPr => Rate > 0 ? (decimal)Rate / 100 / 365 : 0;
@@ -63,5 +66,26 @@ namespace DebtPlanner
 
             return Math.Ceiling(input * multiplier) / multiplier;
         }
+
+        public List<DebtAmortizationItem> GetAmortization()
+        {
+            var result = new List<DebtAmortizationItem>();
+            var currentDebt = this;
+
+            while (currentDebt.Balance > 0)
+            {
+                var debtAmortizationItem = new DebtAmortizationItem(currentDebt);
+                result.Add(debtAmortizationItem);
+                currentDebt = debtAmortizationItem.debtInfo;
+            }
+
+            return result;
+        }
+
+        /// <inheritdoc />
+        public override string ToString() => $"{Name}\n" +
+                                             $"{"Balance".PadRight(12)} | % Rate | Minimum\n" +
+                                             "-------------------------------\n" +
+                                             $"{Balance,12:C} | {Rate,5}% | {Minimum,7:C}";
     }
 }

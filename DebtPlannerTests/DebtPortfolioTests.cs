@@ -8,13 +8,7 @@ namespace DebtPlannerTests
     [TestClass]
     public class DebtPortfolioTests : TestBase
     {
-        private readonly DebtInfo a0 = new DebtInfo("A", 16000, 3.25, 225);
-        private readonly DebtInfo a1 = new DebtInfo("B", 12000, 0, 125);
-        private readonly DebtInfo a2 = new DebtInfo("C", 6000, 3.5, 182);
-        private readonly DebtInfo a3 = new DebtInfo("D", 4000, 12.25, 50);
-        private readonly DebtInfo a4 = new DebtInfo("E", 2000, 15.55, 200);
-        private readonly DebtInfo a5 = new DebtInfo("F", 1000, 22, 50);
-        private readonly DebtInfo a6 = new DebtInfo("G", 500, 22, 50);
+        
 
         private DebtPortfolio CreatePortfolio() => new DebtPortfolio { a0, a1, a2, a3, a4, a5, a6, };
 
