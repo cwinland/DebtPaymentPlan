@@ -5,6 +5,8 @@ using System.Text;
 
 namespace DebtPlanner
 {
+    // ReSharper disable once ClassWithVirtualMembersNeverInherited.Global
+
     /// <summary>
     /// Class DebtPortfolio.
     /// Implements the <see cref="List{T}" />
@@ -12,6 +14,28 @@ namespace DebtPlanner
     /// <seealso cref="List{DebtInfo}" />
     public class DebtPortfolio : List<DebtInfo>
     {
+        public virtual string Summary
+        {
+            get
+            {
+                var builder = new StringBuilder();
+                builder.AppendLine("Summary:");
+
+                if (Count == 0)
+                {
+                    builder.AppendLine("No Debt! Congratulations!");
+
+                    return builder.ToString();
+                }
+
+                this.OrderBy(x => x.Name)
+                    .ToList()
+                    .ForEach(x => builder.AppendLine($"{x}\n"));
+
+                return builder.ToString();
+            }
+        }
+
         /// <summary>
         /// Gets the header.
         /// </summary>
@@ -20,7 +44,13 @@ namespace DebtPlanner
         {
             get
             {
+                if (Count == 0)
+                {
+                    return string.Empty;
+                }
+
                 var builder = new StringBuilder();
+                builder.Append("Header:");
 
                 foreach (var keyValuePair in GetAmortization())
                 {
@@ -28,6 +58,8 @@ namespace DebtPlanner
                     var debtAmortization = keyValuePair.Value;
                     builder.AppendLine($"\n{debtInfo}");
                     builder.AppendLine($"\nNumber Payments: {debtAmortization.Count}\n");
+
+                    builder.AppendLine("Schedule:");
                     builder.AppendLine(debtAmortization.ToString());
                 }
 
@@ -45,6 +77,14 @@ namespace DebtPlanner
             {
                 var list = GetAmortization();
                 var builder = new StringBuilder();
+                builder.AppendLine("Payments:");
+
+                if (list.Count == 0)
+                {
+                    builder.AppendLine("No Payments!\n");
+
+                    return builder.ToString();
+                }
 
                 var maxPayments = list.Values.ToList().Max(x => x.Count);
 
@@ -98,6 +138,12 @@ namespace DebtPlanner
 
                              orderedList.Add(aCount, item);
                          });
+
+            if (orderedList.Count == 0)
+            {
+                return amList;
+            }
+
             var working = orderedList.FirstOrDefault().Value;
             var workingAm = working.GetAmortization();
             var workingAmount = working.OriginalMinimum;

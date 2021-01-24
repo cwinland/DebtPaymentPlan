@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Security;
+using AppConfigSettings;
+using AppConfigSettings.Enum;
 using EncryptamajigCore;
 using Newtonsoft.Json;
 
@@ -49,16 +51,20 @@ namespace DebtPlanner.Data
         /// <param name="securityKey">The security key.</param>
         public DebtFileStorage(DirectoryInfo path = null, string fileName = null, SecureString securityKey = null)
         {
+            var defaultDirectoryPath =
+                new ConfigSetting<string>("DirectoryPath", DefaultPath, SettingScopes.Any, Directory.Exists);
+            var defaultFileName = new ConfigSetting<string>("FileName", DefaultFileName);
+
             Key = securityKey ?? GenerateSecureString();
 
             DirectoryPath = path != null &&
                             path.Exists
                 ? path
-                : new DirectoryInfo(DefaultPath);
+                : new DirectoryInfo(defaultDirectoryPath.Get());
 
             FileName = !string.IsNullOrWhiteSpace(fileName)
                 ? fileName
-                : DefaultFileName;
+                : defaultFileName.Get();
         }
 
         /// <summary>

@@ -136,7 +136,7 @@ namespace DebtPlannerTests
         }
 
         [TestMethod]
-        public void Test()
+        public void Schedule_Formatting()
         {
             var portfolio = new DebtPortfolio
             {
@@ -152,7 +152,28 @@ namespace DebtPlannerTests
             };
 
             var schedule = portfolio.ToString();
-            Console.WriteLine(schedule);
+            var summary = portfolio.Summary;
+            portfolio.ForEach(x => schedule.Should().Contain(x.Name));
+            portfolio.ForEach(x => schedule.Should().Contain($"{x.Balance:C}"));
+            portfolio.ForEach(x => schedule.Should().Contain($"{x.Rate:N}%"));
+            portfolio.ForEach(x => schedule.Should().Contain($"{x.Minimum:C}"));
+            portfolio.ForEach(x => schedule.Should().Contain($"{x.CurrentPayment:C}"));
+
+            portfolio.ForEach(x => summary.Should().Contain(x.Name));
+            portfolio.ForEach(x => summary.Should().Contain($"{x.Balance:C}"));
+            portfolio.ForEach(x => summary.Should().Contain($"{x.Rate:N}%"));
+            portfolio.ForEach(x => summary.Should().Contain($"{x.Minimum:C}"));
+            portfolio.ForEach(x => summary.Should().Contain($"{x.CurrentPayment:C}"));
+        }
+
+        [TestMethod]
+        public void Empty()
+        {
+            var portfolio = new DebtPortfolio();
+            portfolio.ToString().Should().Contain("No Payments");
+            portfolio.Header.Should().BeEmpty();
+            portfolio.Summary.Should().Contain("No Debt! Congratulations!");
+            portfolio.Payments.Should().Contain("No Payments");
         }
     }
 }

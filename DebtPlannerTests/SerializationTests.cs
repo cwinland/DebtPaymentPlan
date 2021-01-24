@@ -30,7 +30,7 @@ namespace DebtPlannerTests
         public void ConvertToJson()
         {
             var str = JsonConvert.SerializeObject(debtPortfolio);
-            str.Should().Be(DEBT_STRING);
+            debtPortfolio.Should().Equals(JsonConvert.DeserializeObject(str));
         }
 
         [TestMethod]

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using AppConfigSettings;
+using AppConfigSettings.Enum;
 
 namespace DebtPlanner
 {
@@ -10,7 +12,11 @@ namespace DebtPlanner
     /// </summary>
     public class DebtInfo
     {
-        private readonly decimal minPaymentMultiplier = 1.5M;
+        public static ConfigSetting<decimal> MultiplierSetting { get; set; } =
+            new ConfigSetting<decimal>("PaymentMultiplier", 1.5M, SettingScopes.Any, num => num >= 0M);
+
+        private readonly decimal minPaymentMultiplier;
+
         private decimal balance;
 
         private decimal rate;
@@ -134,6 +140,7 @@ namespace DebtPlanner
         /// <exception cref="ArgumentOutOfRangeException">minimum - Current Payment ({CurrentPayment} is too low to pay the interest of {AverageMonthlyInterest}.</exception>
         public DebtInfo(string name, decimal balance, decimal rate, decimal minimum, bool forceMinPayment = true)
         {
+            minPaymentMultiplier = MultiplierSetting.Get();
             ForceMinPayment = forceMinPayment;
 
             Name = name;
@@ -226,6 +233,6 @@ namespace DebtPlanner
         public override string ToString() => $"Name: {Name}\n" +
                                              $"{"Balance".PadRight(12)} | % Rate | Minimum | Max Payment\n" +
                                              "---------------------------------------------\n" +
-                                             $"{Balance,12:C} | {Rate,5}% | {Minimum,7:C} | {CurrentPayment,11:C}";
+                                             $"{Balance,12:C} | {Rate,5:N}% | {Minimum,7:C} | {CurrentPayment,11:C}";
     }
 }
