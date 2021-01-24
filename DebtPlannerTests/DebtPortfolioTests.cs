@@ -12,7 +12,14 @@ namespace DebtPlannerTests
         private DebtPortfolio CreatePortfolio() => new DebtPortfolio { a0, a1, a2, a3, a4, a5, a6, a7, b8, };
 
         [TestMethod]
-        public void CreatedPortfolio() => CreatePortfolio().Should().NotBeNull();
+        public void CreatedPortfolio()
+        {
+            var port = CreatePortfolio();
+            port.Should().NotBeNull();
+            var newPort = new DebtPortfolio(port.ToList());
+            newPort.Should().NotBeNullOrEmpty();
+            newPort.Should().Equals(port);
+        }
 
         [TestMethod]
         [DataRow(0, 7)]
@@ -31,10 +38,10 @@ namespace DebtPlannerTests
         }
 
         [TestMethod]
-        [DataRow(0, 80)]
+        [DataRow(0, 79)]
         [DataRow(1, 96)]
         [DataRow(2, 35)]
-        [DataRow(3, 109)]
+        [DataRow(3, 111)]
         [DataRow(4, 11)]
         [DataRow(5, 26)]
         [DataRow(6, 12)]
@@ -94,10 +101,11 @@ namespace DebtPlannerTests
         [TestMethod]
         public void Amortization_NeverChanges()
         {
-            var p = CreatePortfolio();
+            var p = new DebtPortfolio(CreatePortfolio().OrderBy(x => x.Name).ToList());
             var l = p.GetAmortization();
+            p = new DebtPortfolio(CreatePortfolio().OrderByDescending(x => x.Name).ToList());
             var m = p.GetAmortization();
-            l.ToString().Should().Be(m.ToString());
+            l.ToList().ForEach(x => x.Value.Equals(m.First(y => y.Key.Name == x.Key.Name).Value));
         }
 
         [TestMethod]
@@ -140,7 +148,7 @@ namespace DebtPlannerTests
                 new DebtInfo("F", 1000, 22, 50),
                 new DebtInfo("G", 500, 22, 50),
                 new DebtInfo("H", 10, 50.3M, 250),
-                new DebtInfo("I", balance: 13000, 12, 100),
+                new DebtInfo("I", 13000, 12, 100),
             };
 
             var schedule = portfolio.ToString();

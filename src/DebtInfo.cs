@@ -4,65 +4,155 @@ using System.Linq;
 
 namespace DebtPlanner
 {
+    // ReSharper disable once ClassWithVirtualMembersNeverInherited.Global
+    /// <summary>
+    /// Class DebtInfo.
+    /// </summary>
     public class DebtInfo
     {
         private readonly decimal minPaymentMultiplier = 1.5M;
         private decimal balance;
 
-        private decimal minimum;
         private decimal rate;
+
+        /// <summary>
+        /// Gets or sets the additional payment.
+        /// </summary>
+        /// <value>The additional payment.</value>
         public decimal AdditionalPayment { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether [force minimum payment].
+        /// </summary>
+        /// <value><c>true</c> if [force minimum payment]; otherwise, <c>false</c>.</value>
         public bool ForceMinPayment { get; set; }
+
+        /// <summary>
+        /// Gets the name.
+        /// </summary>
+        /// <value>The name.</value>
         public string Name { get; }
+
+        /// <summary>
+        /// Gets the original minimum.
+        /// </summary>
+        /// <value>The original minimum.</value>
+        public decimal OriginalMinimum { get; private set; }
+
+        /// <summary>
+        /// Gets the balance.
+        /// </summary>
+        /// <value>The balance.</value>
         public decimal Balance { get => balance; private set => balance = Math.Round(value, 2); }
-        public decimal Rate { get => rate; private set => rate = value; }
 
-        public decimal OriginalMinimum => minimum;
+        /// <summary>
+        /// Gets the rate.
+        /// </summary>
+        /// <value>The rate.</value>
+        public decimal Rate { get => Math.Round(rate); private set => rate = value; }
 
+        /// <summary>
+        /// Gets the minimum.
+        /// </summary>
+        /// <value>The minimum.</value>
         public decimal Minimum
         {
             get => Math.Min(Balance,
                             ForceMinPayment
-                                ? Math.Max(AverageMonthlyInterest * minPaymentMultiplier, OriginalMinimum)
+                                ? Math.Max(Math.Round(AverageMonthlyInterest * minPaymentMultiplier, 2),
+                                           OriginalMinimum)
                                 : OriginalMinimum);
-            private set => minimum = Math.Round(value, 2);
+            private set => OriginalMinimum = Math.Round(value, 2);
         }
 
-        public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? Minimum / Balance : 0;
-        public decimal DailyPr => Rate > 0 ? Rate / 100 / 365 : 0;
-        public decimal AverageMonthyPr => Rate > 0 ? Rate / 100 / 12 : 0;
-        public decimal DailyInterest => DailyPr * Balance;
+        /// <summary>
+        /// Gets the minimum percent.
+        /// </summary>
+        /// <value>The minimum percent.</value>
+        public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? Math.Round(Minimum / Balance, 5) : 0;
+
+        /// <summary>
+        /// Gets the daily pr.
+        /// </summary>
+        /// <value>The daily pr.</value>
+        public decimal DailyPr => Rate > 0 ? Math.Round(Rate / 100 / 365, 12) : 0;
+
+        /// <summary>
+        /// Gets the average monthy pr.
+        /// </summary>
+        /// <value>The average monthy pr.</value>
+        public decimal AverageMonthyPr => Rate > 0 ? Math.Round(Rate / 100 / 12, 10) : 0;
+
+        /// <summary>
+        /// Gets the daily interest.
+        /// </summary>
+        /// <value>The daily interest.</value>
+        public decimal DailyInterest => RoundUp(DailyPr * Balance, 2);
+
+        /// <summary>
+        /// Gets the average monthly interest.
+        /// </summary>
+        /// <value>The average monthly interest.</value>
         public decimal AverageMonthlyInterest => RoundUp(AverageMonthyPr * Balance, 2);
 
+        /// <summary>
+        /// Gets the current payment.
+        /// </summary>
+        /// <value>The current payment.</value>
         public decimal CurrentPayment => Balance > 0 ? Math.Min(Minimum + AdditionalPayment, Balance) : 0;
 
+        /// <summary>
+        /// Gets the current payment reduction.
+        /// </summary>
+        /// <value>The current payment reduction.</value>
         public decimal CurrentPaymentReduction => CurrentPayment > 0 ? CurrentPayment - AverageMonthlyInterest : 0;
 
+        /// <summary>
+        /// Gets the payoff months.
+        /// </summary>
+        /// <value>The payoff months.</value>
         public int PayoffMonths => Balance > 0
             ? (int)Math.Ceiling(Balance / CurrentPaymentReduction)
             : 0;
 
+        /// <summary>
+        /// Gets the payoff days.
+        /// </summary>
+        /// <value>The payoff days.</value>
         public int PayoffDays => Balance > 0
             ? (int)Math.Ceiling(Balance / (CurrentPaymentReduction / 12))
             : 0;
 
-        public DebtInfo(string name, decimal balance, decimal rate, decimal minPayment, bool forceMinPayment = true)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DebtInfo" /> class.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="balance">The balance.</param>
+        /// <param name="rate">The rate.</param>
+        /// <param name="minimum">The minimum.</param>
+        /// <param name="forceMinPayment">if set to <c>true</c> [force minimum payment].</param>
+        /// <exception cref="ArgumentOutOfRangeException">minimum - Current Payment ({CurrentPayment} is too low to pay the interest of {AverageMonthlyInterest}.</exception>
+        public DebtInfo(string name, decimal balance, decimal rate, decimal minimum, bool forceMinPayment = true)
         {
             ForceMinPayment = forceMinPayment;
 
             Name = name;
             Balance = balance;
             Rate = rate;
-            Minimum = minPayment;
+            Minimum = minimum;
 
             if (Balance > CurrentPayment &&
                 CurrentPayment <= AverageMonthlyInterest)
             {
-                throw new ArgumentOutOfRangeException(nameof(minPayment),
+                throw new ArgumentOutOfRangeException(nameof(minimum),
                                                       $"Current Payment ({CurrentPayment} is too low to pay the interest of {AverageMonthlyInterest}. ");
             }
         }
 
+        /// <summary>
+        /// Applies the payment.
+        /// </summary>
+        /// <returns>DebtInfo.</returns>
         public DebtInfo ApplyPayment()
         {
             Balance -= CurrentPaymentReduction;
@@ -70,15 +160,12 @@ namespace DebtPlanner
             return this;
         }
 
-        public DebtInfo ResetMinimum()
-        {
-            var minPercent = MinimumPercent;
-            var newMin = Balance * minPercent;
-            Minimum = RoundUp(newMin, 2);
-
-            return this;
-        }
-
+        /// <summary>
+        /// Rounds up.
+        /// </summary>
+        /// <param name="input">The input.</param>
+        /// <param name="places">The places.</param>
+        /// <returns>System.Decimal.</returns>
         public static decimal RoundUp(decimal input, int places)
         {
             var multiplier = (int)Math.Ceiling(Math.Pow(10, Convert.ToDouble(places)));
@@ -86,6 +173,12 @@ namespace DebtPlanner
             return Math.Ceiling(input * multiplier) / multiplier;
         }
 
+        /// <summary>
+        /// Gets the amortization.
+        /// </summary>
+        /// <param name="numberOfPayments">The number of payments.</param>
+        /// <param name="additionalPayments">The additional payments.</param>
+        /// <returns>DebtAmortization.</returns>
         public virtual DebtAmortization GetAmortization(
             int? numberOfPayments = null, List<Tuple<int, decimal>> additionalPayments = null)
         {

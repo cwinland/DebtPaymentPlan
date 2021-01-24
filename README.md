@@ -1,6 +1,6 @@
 # Debt Payment Planner and Payoff Intelligence
 
-Calculate the best way to pay down your debt.
+Library to calculate the best way to pay down your debt, sort, and produce a payment plan for the fastest payoff.
 
 ## Feature Summary
 
@@ -10,14 +10,7 @@ Calculate the best way to pay down your debt.
   - Order the debt so the bulk of the payments go toward the debt that will be paid off earlier.
   - As each card is paid off, that money is combined and added to the next card to be paid off quickly.
 - Payment Statistics: Number of payments, range, utilization, APRs, etc.
-
-## Create a Debt Info Object
-
-Each DebtInfo object handles the majority of the logic and calculations. Combine these to create a portfolio.
-
-```c#
-public DebtInfo(string name, decimal balance, decimal rate, decimal minPayment, bool forceMinPayment = true)
-```
+- Save / Load Data
 
 ## Create a Portfolio Object
 
@@ -34,14 +27,26 @@ var portfolio = new DebtPortfolio
                 new DebtInfo("F", 1000, 22, 50),
                 new DebtInfo("G", 500, 22, 50),
                 new DebtInfo("H", 10, 50.3M, 250),
-                new DebtInfo("I", balance: 13000, 12, 100),
+                new DebtInfo("I", 13000, 12, 100),
             };
 ```
+
+### DebtInfo
+
+```c#
+// public DebtInfo(string name, decimal balance, decimal rate, decimal minPayment, bool forceMinPayment = true)
+```
+
+- Name: Name of Debt
+- Balance: Current outstanding balance
+- Rate: Annual Percentage Rate
+- MinPayment: Minimum payment allowed to the debt
+- ForceMinPayment: Indicates to allow the system to increase the minimum if it detects a payment issue
 
 ## Sample Output
 
 The debt summary shows the debt statistics and the amortization schedule.
-This is a calcuation available by executing or overriding:
+This is a calculation available by executing or overriding:
 
 ```c#
 public virtual string Header
@@ -64,7 +69,7 @@ public virtual string Header
 }
 ```
 
-```
+```text
 Name: E
 
 Balance      | % Rate | Minimum | Max Payment
@@ -81,6 +86,7 @@ Payment   5:    $450.00 |    $6.88 |    $443.12 |       $87.16
 Payment   6:     $87.16 |    $0.00 |     $87.16 |        $0.00
 
 ```
+
 ## Sample Payment Summary
 
 Payment summary shows all payments combined for all debts. Each payment is the sum of all debt for that payment.
@@ -110,7 +116,7 @@ public virtual string Payments
 }
 ```
 
-```
+```text
 Payment   1:   $1,098.26
 Payment   2:   $1,338.26
 Payment   3:   $1,338.26
@@ -124,10 +130,15 @@ Payment  50:     $750.34
       Total:  $62,927.47
 ```
 
-# Release Notes
+## Release Notes
 
-- None
+- Current
+  - Add File save/load with encryption
 
-# License
+- Version 1.21.1.1922
+  - Initial Release
+
+## License
+
 - Copyright(c) 2021 Christopher Winland
-- [Apache-2.0 License]https://github.com/cwinland/DebtPaymentPlan/blob/master/LICENSE
+- [Apache-2.0 License]<https://github.com/cwinland/DebtPaymentPlan/blob/master/LICENSE>

@@ -5,8 +5,17 @@ using System.Text;
 
 namespace DebtPlanner
 {
+    /// <summary>
+    /// Class DebtPortfolio.
+    /// Implements the <see cref="List{T}" />
+    /// </summary>
+    /// <seealso cref="List{DebtInfo}" />
     public class DebtPortfolio : List<DebtInfo>
     {
+        /// <summary>
+        /// Gets the header.
+        /// </summary>
+        /// <value>The header.</value>
         public virtual string Header
         {
             get
@@ -26,6 +35,10 @@ namespace DebtPlanner
             }
         }
 
+        /// <summary>
+        /// Gets the payments.
+        /// </summary>
+        /// <value>The payments.</value>
         public virtual string Payments
         {
             get
@@ -48,6 +61,21 @@ namespace DebtPlanner
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DebtPortfolio"/> class.
+        /// </summary>
+        public DebtPortfolio() { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DebtPortfolio"/> class.
+        /// </summary>
+        /// <param name="list">The list.</param>
+        public DebtPortfolio(IEnumerable<DebtInfo> list) : this() => AddRange(list);
+
+        /// <summary>
+        /// Gets the amortization.
+        /// </summary>
+        /// <returns>Dictionary&lt;DebtInfo, DebtAmortization&gt;.</returns>
         public virtual Dictionary<DebtInfo, DebtAmortization> GetAmortization()
         {
             var amList = new Dictionary<DebtInfo, DebtAmortization>();
@@ -62,6 +90,12 @@ namespace DebtPlanner
                                                      x.OriginalMinimum,
                                                      x.ForceMinPayment);
                              var aCount = item.GetAmortization().Count;
+
+                             while (orderedList.ContainsKey(aCount))
+                             {
+                                 aCount++;
+                             }
+
                              orderedList.Add(aCount, item);
                          });
             var working = orderedList.FirstOrDefault().Value;

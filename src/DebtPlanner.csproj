@@ -38,15 +38,22 @@
 		</PropertyGroup>
 	</Target>
 	<ItemGroup>
+	  <Compile Include="Data\DebtFileStorage.cs" />
 	  <Compile Include="DebtAmortization.cs" />
 	  <Compile Include="DebtAmortizationItem.cs" />
 	  <Compile Include="DebtInfo.cs" />
 	  <Compile Include="DebtPortfolio.cs" />
+	  <Compile Include="Extend.cs" />
 	</ItemGroup>
 	<ItemGroup>
 	  <None Include="..\LICENSE">
 	    <Pack>True</Pack>
 	    <PackagePath></PackagePath>
 	  </None>
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="EncryptamajigCore" Version="2.0.1" />
+	  <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+	  <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
 	</ItemGroup>
 </Project>
