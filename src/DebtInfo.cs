@@ -37,7 +37,7 @@ namespace DebtPlanner
         /// Gets the name.
         /// </summary>
         /// <value>The name.</value>
-        public string Name { get; }
+        public string Name { get; set; }
 
         /// <summary>
         /// Gets the original minimum.
@@ -49,13 +49,13 @@ namespace DebtPlanner
         /// Gets the balance.
         /// </summary>
         /// <value>The balance.</value>
-        public decimal Balance { get => balance; private set => balance = Math.Round(value, 2); }
+        public decimal Balance { get => balance; set => balance = Math.Round(value, 2); }
 
         /// <summary>
         /// Gets the rate.
         /// </summary>
         /// <value>The rate.</value>
-        public decimal Rate { get => Math.Round(rate); private set => rate = value; }
+        public decimal Rate { get => Math.Round(rate, 2); set => rate = value; }
 
         /// <summary>
         /// Gets the minimum.
@@ -68,7 +68,7 @@ namespace DebtPlanner
                                 ? Math.Max(Math.Round(AverageMonthlyInterest * minPaymentMultiplier, 2),
                                            OriginalMinimum)
                                 : OriginalMinimum);
-            private set => OriginalMinimum = Math.Round(value, 2);
+            set => OriginalMinimum = Math.Round(value, 2);
         }
 
         /// <summary>

@@ -16,9 +16,11 @@ namespace DebtPlannerConsoleTest
             // Complete InitDebt and uncomment to create the initial data file.
             //InitDebt();
             portfolio = Load();
+
             Console.WriteLine(portfolio.Summary);
             Console.WriteLine("Schedule(s):");
             Console.WriteLine(portfolio);
+            Save();
         }
 
         private static void InitDebt()
