@@ -1,0 +1,22 @@
+body {
+    background-color: lightgray !important;
+    height: 100vh !important;
+    overflow-x: hidden !important;
+}
+
+.mud-paper {
+    background-color: lightcyan !important;
+    padding: 1em;
+}
+
+.navTitle {
+    font-size: var(--mud-typography-h5-size);
+    font-family: var(--mud-typography-h5-family);
+    font-weight: var(--mud-typography-h5-weight);
+    line-height: var(--mud-typography-h5-lineheight);
+    letter-spacing: var(--mud-typography-h5-letterspacing);
+    text-align: center;
+    background-color: var(--mud-palette-appbar-background);
+    color: var(--mud-palette-appbar-text);
+}
+

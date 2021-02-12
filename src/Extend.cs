@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Security;
+using DebtPlanner.Data;
 
 namespace DebtPlanner
 {
@@ -12,5 +13,7 @@ namespace DebtPlanner
 
             return sString;
         }
+
+        public static void Save(this DebtPortfolio portfolio) => new DebtFileStorage().Save(portfolio);
     }
 }
