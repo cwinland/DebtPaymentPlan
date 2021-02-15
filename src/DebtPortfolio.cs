@@ -87,12 +87,15 @@ namespace DebtPlanner
                 }
 
                 var maxPayments = list.Values.ToList().Max(x => x.Count);
+                var today = DateTime.Today;
 
                 for (var i = 0; i < maxPayments; i++)
                 {
                     var paymentNum = i + 1;
                     builder.AppendLine(
                         $"Payment {paymentNum,3}: {list.Values.Sum(x => x.Count > i ? x[i].Payment : 0),11:C}");
+
+                    today = today.AddMonths(1);
                 }
 
                 builder.AppendLine($"{"Total",11}: {list.Values.Sum(x => x.Sum(y => y.Payment)),11:C}");
@@ -126,9 +129,11 @@ namespace DebtPlanner
                          {
                              var item = new DebtInfo(x.Name,
                                                      x.Balance,
-                                                     x.Rate,
+                                                     x.GetInterestRate(),
+                                                     x.GetMinimum(),
                                                      x.OriginalMinimum,
-                                                     x.ForceMinPayment);
+                                                     x.ForceMinPayment,
+                                                     x.FutureRatesCalendar);
                              var aCount = item.GetAmortization().Count;
 
                              while (orderedList.ContainsKey(aCount))
@@ -146,9 +151,9 @@ namespace DebtPlanner
 
             var working = orderedList.FirstOrDefault().Value;
             var workingAm = working.GetAmortization();
-            var workingAmount = working.OriginalMinimum;
+            var workingAmount = working.GetMinimum();
             var additionalAmounts =
-                new List<Tuple<int, decimal>> { new Tuple<int, decimal>(workingAm.Count, workingAmount), };
+                new List<(int OrderNumber, decimal Amount)> { (workingAm.Count, workingAmount), };
             amList.Add(working, workingAm);
             orderedList.RemoveAt(0);
 
@@ -156,10 +161,10 @@ namespace DebtPlanner
             {
                 var item = orderedList.FirstOrDefault().Value;
                 var am = item.GetAmortization(null, additionalAmounts);
-                item.AdditionalPayment = am.Max(x => x.Payment) - item.Minimum;
+                item.AdditionalPayment = am.Max(x => x.Payment) - item.GetMinimum();
                 amList.Add(item, am);
-                workingAmount += item.OriginalMinimum;
-                additionalAmounts = new List<Tuple<int, decimal>> { new Tuple<int, decimal>(am.Count, workingAmount), };
+                workingAmount += item.GetMinimum();
+                additionalAmounts = new List<(int OrderNumber, decimal Amount)> { (am.Count, workingAmount), };
                 orderedList.RemoveAt(0);
             }
 

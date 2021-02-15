@@ -91,8 +91,13 @@ namespace DebtPlanner.Data
         /// Loads this instance.
         /// </summary>
         /// <returns>DebtPortfolio.</returns>
-        public DebtPortfolio Load() => JsonConvert.DeserializeObject<DebtPortfolio>(
-            AesEncryptamajig.Decrypt(File.ReadAllText(FilePath), Key.ToString()));
+        public DebtPortfolio Load()
+        {
+            var allText = File.ReadAllText(FilePath);
+            var decryptedText = AesEncryptamajig.Decrypt(allText, Key.ToString());
+
+            return JsonConvert.DeserializeObject<DebtPortfolio>(decryptedText);
+        }
 
         private static SecureString GenerateSecureString() => (Environment.MachineName +
                                                                Environment.ProcessorCount.ToString()

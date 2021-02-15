@@ -33,15 +33,15 @@ namespace DebtPlannerTests
         public void OrderedPortfolio(int xIndex, int aIndex)
         {
             var a = CreatePortfolio();
-            var x = a.OrderBy(info => info.PayoffDays).ToList();
+            var x = a.OrderBy(info => info.GetPayoffDays()).ToList();
             x[xIndex].Should().Be(a[aIndex]);
         }
 
         [TestMethod]
-        [DataRow(0, 79)]
+        [DataRow(0, 80)]
         [DataRow(1, 96)]
         [DataRow(2, 35)]
-        [DataRow(3, 111)]
+        [DataRow(3, 109)]
         [DataRow(4, 11)]
         [DataRow(5, 26)]
         [DataRow(6, 12)]
@@ -74,8 +74,13 @@ namespace DebtPlannerTests
             var p = CreatePortfolio();
             var paidInfo = p.Where(info => info.Balance == 0).ToList();
             var paid = paidInfo.Sum(info => info.OriginalMinimum);
-            var x = p.Where(info => info.Balance > 0).OrderBy(info => info.GetAmortization().Count).First();
+            var x = p
+                    .Where(info => info.Balance > 0)
+                    .OrderBy(info => info.GetAmortization().Count)
+                    .First();
+
             x.Should().Be(a4);
+
             var originalA = a4.GetAmortization();
             a4.AdditionalPayment = paid;
             var newA = a4.GetAmortization();
@@ -86,16 +91,16 @@ namespace DebtPlannerTests
         public void PayoffMonths_Max()
         {
             var p = CreatePortfolio();
-            var x = p.Max(info => info.PayoffMonths);
-            x.Should().Be(b8.PayoffMonths);
+            var x = p.Max(info => info.GetPayoffMonths());
+            x.Should().Be(b8.GetPayoffMonths());
         }
 
         [TestMethod]
         public void PayoffMonths_Min()
         {
             var p = CreatePortfolio();
-            p.Min(info => info.PayoffMonths).Should().Be(a7.PayoffMonths);
-            p.Where(x => x.Balance > 0).Min(info => info.PayoffMonths).Should().Be(a4.PayoffMonths);
+            p.Min(info => info.GetPayoffMonths()).Should().Be(a7.GetPayoffMonths());
+            p.Where(x => x.Balance > 0).Min(info => info.GetPayoffMonths()).Should().Be(a4.GetPayoffMonths());
         }
 
         [TestMethod]
@@ -155,15 +160,15 @@ namespace DebtPlannerTests
             var summary = portfolio.Summary;
             portfolio.ForEach(x => schedule.Should().Contain(x.Name));
             portfolio.ForEach(x => schedule.Should().Contain($"{x.Balance:C}"));
-            portfolio.ForEach(x => schedule.Should().Contain($"{x.Rate:N}%"));
-            portfolio.ForEach(x => schedule.Should().Contain($"{x.Minimum:C}"));
-            portfolio.ForEach(x => schedule.Should().Contain($"{x.CurrentPayment:C}"));
+            portfolio.ForEach(x => schedule.Should().Contain($"{x.GetInterestRate():N}%"));
+            portfolio.ForEach(x => schedule.Should().Contain($"{x.GetMinimum():C}"));
+            portfolio.ForEach(x => schedule.Should().Contain($"{x.GetCurrentPayment():C}"));
 
             portfolio.ForEach(x => summary.Should().Contain(x.Name));
             portfolio.ForEach(x => summary.Should().Contain($"{x.Balance:C}"));
-            portfolio.ForEach(x => summary.Should().Contain($"{x.Rate:N}%"));
-            portfolio.ForEach(x => summary.Should().Contain($"{x.Minimum:C}"));
-            portfolio.ForEach(x => summary.Should().Contain($"{x.CurrentPayment:C}"));
+            portfolio.ForEach(x => summary.Should().Contain($"{x.GetInterestRate():N}%"));
+            portfolio.ForEach(x => summary.Should().Contain($"{x.GetMinimum():C}"));
+            portfolio.ForEach(x => summary.Should().Contain($"{x.GetCurrentPayment():C}"));
         }
 
         [TestMethod]

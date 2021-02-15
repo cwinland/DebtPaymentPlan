@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AppConfigSettings;
 using AppConfigSettings.Enum;
+using Newtonsoft.Json;
 
 namespace DebtPlanner
 {
@@ -12,14 +13,11 @@ namespace DebtPlanner
     /// </summary>
     public class DebtInfo
     {
-        public static ConfigSetting<decimal> MultiplierSetting { get; set; } =
-            new ConfigSetting<decimal>("PaymentMultiplier", 1.5M, SettingScopes.Any, num => num >= 0M);
+        private const string MULTIPLIER_SETTING = "PaymentMultiplier";
 
         private readonly decimal minPaymentMultiplier;
 
         private decimal balance;
-
-        private decimal rate;
 
         /// <summary>
         /// Gets or sets the additional payment.
@@ -28,10 +26,21 @@ namespace DebtPlanner
         public decimal AdditionalPayment { get; set; }
 
         /// <summary>
+        /// Gets the original minimum.
+        /// </summary>
+        /// <value>The original minimum.</value>
+        private decimal CurrentMinimum { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether [force minimum payment].
         /// </summary>
         /// <value><c>true</c> if [force minimum payment]; otherwise, <c>false</c>.</value>
         public bool ForceMinPayment { get; set; }
+
+        /// <summary>
+        /// Interest rate calendar for automatic changes.
+        /// </summary>
+        public InterestCalendar FutureRatesCalendar { get; internal set; } = new InterestCalendar();
 
         /// <summary>
         /// Gets the name.
@@ -39,95 +48,30 @@ namespace DebtPlanner
         /// <value>The name.</value>
         public string Name { get; set; }
 
-        /// <summary>
-        /// Gets the original minimum.
-        /// </summary>
-        /// <value>The original minimum.</value>
         public decimal OriginalMinimum { get; private set; }
+
+        protected internal static ConfigSetting<decimal> MultiplierSetting { get; set; } =
+            new ConfigSetting<decimal>(MULTIPLIER_SETTING, 1.5M, SettingScopes.Any, num => num >= 0M);
 
         /// <summary>
         /// Gets the balance.
         /// </summary>
         /// <value>The balance.</value>
-        public decimal Balance { get => balance; set => balance = Math.Round(value, 2); }
+        public decimal Balance { get => balance; internal set => balance = Math.Round(value, 2); }
 
-        /// <summary>
-        /// Gets the rate.
-        /// </summary>
-        /// <value>The rate.</value>
-        public decimal Rate { get => Math.Round(rate, 2); set => rate = value; }
-
-        /// <summary>
-        /// Gets the minimum.
-        /// </summary>
-        /// <value>The minimum.</value>
-        public decimal Minimum
+        public DebtInfo()
         {
-            get => Math.Min(Balance,
-                            ForceMinPayment
-                                ? Math.Max(Math.Round(AverageMonthlyInterest * minPaymentMultiplier, 2),
-                                           OriginalMinimum)
-                                : OriginalMinimum);
-            set => OriginalMinimum = Math.Round(value, 2);
+            ForceMinPayment = true;
+            minPaymentMultiplier = MultiplierSetting.Get();
         }
 
-        /// <summary>
-        /// Gets the minimum percent.
-        /// </summary>
-        /// <value>The minimum percent.</value>
-        public decimal MinimumPercent => Balance > 0 && Minimum > 0 ? Math.Round(Minimum / Balance, 5) : 0;
-
-        /// <summary>
-        /// Gets the daily pr.
-        /// </summary>
-        /// <value>The daily pr.</value>
-        public decimal DailyPr => Rate > 0 ? Math.Round(Rate / 100 / 365, 12) : 0;
-
-        /// <summary>
-        /// Gets the average monthy pr.
-        /// </summary>
-        /// <value>The average monthy pr.</value>
-        public decimal AverageMonthyPr => Rate > 0 ? Math.Round(Rate / 100 / 12, 10) : 0;
-
-        /// <summary>
-        /// Gets the daily interest.
-        /// </summary>
-        /// <value>The daily interest.</value>
-        public decimal DailyInterest => RoundUp(DailyPr * Balance, 2);
-
-        /// <summary>
-        /// Gets the average monthly interest.
-        /// </summary>
-        /// <value>The average monthly interest.</value>
-        public decimal AverageMonthlyInterest => RoundUp(AverageMonthyPr * Balance, 2);
-
-        /// <summary>
-        /// Gets the current payment.
-        /// </summary>
-        /// <value>The current payment.</value>
-        public decimal CurrentPayment => Balance > 0 ? Math.Min(Minimum + AdditionalPayment, Balance) : 0;
-
-        /// <summary>
-        /// Gets the current payment reduction.
-        /// </summary>
-        /// <value>The current payment reduction.</value>
-        public decimal CurrentPaymentReduction => CurrentPayment > 0 ? CurrentPayment - AverageMonthlyInterest : 0;
-
-        /// <summary>
-        /// Gets the payoff months.
-        /// </summary>
-        /// <value>The payoff months.</value>
-        public int PayoffMonths => Balance > 0
-            ? (int)Math.Ceiling(Balance / CurrentPaymentReduction)
-            : 0;
-
-        /// <summary>
-        /// Gets the payoff days.
-        /// </summary>
-        /// <value>The payoff days.</value>
-        public int PayoffDays => Balance > 0
-            ? (int)Math.Ceiling(Balance / (CurrentPaymentReduction / 12))
-            : 0;
+        public DebtInfo(string name, decimal balance, decimal rate, decimal minimum) : this(name,
+            balance,
+            rate,
+            minimum,
+            minimum,
+            true,
+            new InterestCalendar()) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DebtInfo" /> class.
@@ -135,34 +79,157 @@ namespace DebtPlanner
         /// <param name="name">The name.</param>
         /// <param name="balance">The balance.</param>
         /// <param name="rate">The rate.</param>
-        /// <param name="minimum">The minimum.</param>
+        /// <param name="currentMinimum"></param>
+        /// <param name="originalMinimum"></param>
         /// <param name="forceMinPayment">if set to <c>true</c> [force minimum payment].</param>
+        /// <param name="interestCalendar">Future interest rates calendar, if applicable.</param>
         /// <exception cref="ArgumentOutOfRangeException">minimum - Current Payment ({CurrentPayment} is too low to pay the interest of {AverageMonthlyInterest}.</exception>
-        public DebtInfo(string name, decimal balance, decimal rate, decimal minimum, bool forceMinPayment = true)
+        [JsonConstructor]
+        public DebtInfo(
+            string name, decimal balance, decimal rate, decimal currentMinimum, decimal originalMinimum,
+            bool forceMinPayment,
+            InterestCalendar interestCalendar) : this()
         {
-            minPaymentMultiplier = MultiplierSetting.Get();
             ForceMinPayment = forceMinPayment;
 
             Name = name;
             Balance = balance;
-            Rate = rate;
-            Minimum = minimum;
+            SetInterestRate(rate);
+            OriginalMinimum = originalMinimum;
+            SetMinimum(Math.Min(Math.Max(currentMinimum, originalMinimum), Balance));
 
-            if (Balance > CurrentPayment &&
-                CurrentPayment <= AverageMonthlyInterest)
+            if (interestCalendar != null)
             {
-                throw new ArgumentOutOfRangeException(nameof(minimum),
-                                                      $"Current Payment ({CurrentPayment} is too low to pay the interest of {AverageMonthlyInterest}. ");
+                foreach (var keyValuePair in interestCalendar.Where(keyValuePair =>
+                                                                        !FutureRatesCalendar.ContainsKey(
+                                                                            keyValuePair.Key)))
+                {
+                    FutureRatesCalendar.Add(keyValuePair.Key, keyValuePair.Value);
+                }
+            }
+
+            if (Balance > GetCurrentPayment() &&
+                GetCurrentPayment() <= GetAverageMonthlyInterest())
+            {
+                throw new ArgumentOutOfRangeException(nameof(currentMinimum),
+                                                      $"Current Payment ({GetCurrentPayment()} is too low to pay the interest of {GetAverageMonthlyInterest()}. ");
             }
         }
+
+        /// <summary>
+        /// Get interest rate for the specified/optional date.
+        /// </summary>
+        /// <param name="date">Date for interest rate. If omitted, today's date is used.</param>
+        /// <returns>Interest Rate Decimal.</returns>
+        public decimal GetInterestRate(DateTime? date = null)
+        {
+            var searchDate = date ?? DateTime.Today;
+            var rate = FutureRatesCalendar
+                       .Where(x => x.Key <= searchDate)
+                       .OrderByDescending(x => x.Key)
+                       .ToList()
+                       .First()
+                       .Value;
+
+            return Math.Round(rate, 2);
+        }
+
+        /// <summary>
+        /// Set interest rate for optional date.
+        /// </summary>
+        /// <param name="rateDecimal">Interest rate in percent.</param>
+        /// <param name="date">Date which interest rate will apply.</param>
+        /// <returns>Current interest rate as of specified/optional date.</returns>
+        public decimal SetInterestRate(decimal rateDecimal, DateTime? date = null)
+        {
+            var searchDate = date ?? DateTime.Today;
+            FutureRatesCalendar[searchDate] = rateDecimal;
+
+            return GetInterestRate(searchDate);
+        }
+
+        /// <summary>
+        /// Gets the minimum.
+        /// </summary>
+        /// <value>The minimum.</value>
+        public decimal GetMinimum(DateTime? dateAsOf = null) => Math.Min(Balance,
+                                                                         ForceMinPayment
+                                                                             ? Math.Max(
+                                                                                 Math.Round(
+                                                                                     GetAverageMonthlyInterest(
+                                                                                         dateAsOf) *
+                                                                                     minPaymentMultiplier,
+                                                                                     2),
+                                                                                 CurrentMinimum)
+                                                                             : CurrentMinimum);
+
+        /// <summary>
+        /// Sets the minimum.
+        /// </summary>
+        /// <param name="value"></param>
+        public void SetMinimum(decimal value) => CurrentMinimum = Math.Round(Math.Max(value, OriginalMinimum), 2);
+
+        /// <summary>
+        /// Gets the minimum percent.
+        /// </summary>
+        /// <value>The minimum percent.</value>
+        public decimal MinimumPercent(DateTime? dateAsOf = null) => Balance > 0 && GetMinimum(dateAsOf) > 0
+            ? Math.Round(GetMinimum(dateAsOf) / Balance, 5)
+            : 0;
+
+        /// <summary>
+        /// Gets the average monthy pr.
+        /// </summary>
+        /// <value>The average monthy pr.</value>
+        public decimal GetAverageMonthyPr(DateTime? dateAsOf = null) => GetInterestRate(dateAsOf) > 0
+            ? Math.Round(GetInterestRate(dateAsOf) / 100 / 12, 10)
+            : 0;
+
+        /// <summary>
+        /// Gets the average monthly interest.
+        /// </summary>
+        /// <value>The average monthly interest.</value>
+        public decimal GetAverageMonthlyInterest(DateTime? dateAsOf = null) =>
+            RoundUp(GetAverageMonthyPr(dateAsOf) * Balance, 2);
+
+        /// <summary>
+        /// Gets the current payment.
+        /// </summary>
+        /// <value>The current payment.</value>
+        public decimal GetCurrentPayment(DateTime? dateAsOf = null) =>
+            Balance > 0 ? Math.Min(GetMinimum(dateAsOf) + AdditionalPayment, Balance) : 0;
+
+        /// <summary>
+        /// Gets the current payment reduction.
+        /// </summary>
+        /// <value>The current payment reduction.</value>
+        public decimal GetCurrentPaymentReduction(DateTime? dateAsOf = null) => GetCurrentPayment(dateAsOf) > 0
+            ? GetCurrentPayment(dateAsOf) - GetAverageMonthlyInterest(dateAsOf)
+            : 0;
+
+        /// <summary>
+        /// Gets the payoff months.
+        /// </summary>
+        /// <value>The payoff months.</value>
+        public int GetPayoffMonths(DateTime? dateAsOf = null) => Balance > 0
+            ? (int)Math.Ceiling(Balance / GetCurrentPaymentReduction(dateAsOf))
+            : 0;
+
+        /// <summary>
+        /// Gets the payoff days.
+        /// </summary>
+        /// <value>The payoff days.</value>
+        public int GetPayoffDays(DateTime? dateAsOf = null) => Balance > 0
+            ? (int)Math.Ceiling(Balance / (GetCurrentPaymentReduction(dateAsOf) / 12))
+            : 0;
 
         /// <summary>
         /// Applies the payment.
         /// </summary>
         /// <returns>DebtInfo.</returns>
-        public DebtInfo ApplyPayment()
+        public DebtInfo ApplyPayment(DateTime? dateAsOf = null)
         {
-            Balance -= CurrentPaymentReduction;
+            Balance -= GetCurrentPaymentReduction(dateAsOf);
 
             return this;
         }
@@ -187,7 +254,7 @@ namespace DebtPlanner
         /// <param name="additionalPayments">The additional payments.</param>
         /// <returns>DebtAmortization.</returns>
         public virtual DebtAmortization GetAmortization(
-            int? numberOfPayments = null, List<Tuple<int, decimal>> additionalPayments = null)
+            int? numberOfPayments = null, List<(int OrderNumber, decimal Amount)> additionalPayments = null)
         {
             var result = new DebtAmortization();
             var currentDebt = this;
@@ -195,27 +262,31 @@ namespace DebtPlanner
 
             if (additionalPayments == null)
             {
-                additionalPayments = new List<Tuple<int, decimal>>();
+                additionalPayments = new List<(int OrderNumber, decimal Amount)>();
             }
 
-            var additionalPayment = additionalPayments.OrderBy(x => x.Item1).FirstOrDefault();
+            var additionalPayment = additionalPayments
+                                    .OrderBy(x => x.OrderNumber)
+                                    .FirstOrDefault();
 
-            if (additionalPayment != null &&
-                GetAmortization().Count <= additionalPayment.Item1)
+            if (additionalPayment != default &&
+                GetAmortization().Count <= additionalPayment.OrderNumber)
             {
                 return GetAmortization(numberOfPayments);
             }
 
+            var today = DateTime.Today;
+
             while (currentDebt.Balance > 0 &&
                    (!numberOfPayments.HasValue || numberOfPayments > 0))
             {
-                if (additionalPayment != null &&
-                    additionalPayment.Item1 == paymentsMade)
+                if (additionalPayment != default &&
+                    additionalPayment.OrderNumber == paymentsMade)
                 {
-                    currentDebt.AdditionalPayment += additionalPayment.Item2;
+                    currentDebt.AdditionalPayment += additionalPayment.Amount;
                 }
 
-                var debtAmortizationItem = new DebtAmortizationItem(currentDebt);
+                var debtAmortizationItem = new DebtAmortizationItem(currentDebt, today);
                 result.Add(debtAmortizationItem);
                 currentDebt = debtAmortizationItem.debtInfo;
                 paymentsMade++;
@@ -224,15 +295,25 @@ namespace DebtPlanner
                 {
                     numberOfPayments--;
                 }
+
+                today = today.AddMonths(1);
             }
 
             return result;
         }
 
         /// <inheritdoc />
-        public override string ToString() => $"Name: {Name}\n" +
-                                             $"{"Balance".PadRight(12)} | % Rate | Minimum | Max Payment\n" +
-                                             "---------------------------------------------\n" +
-                                             $"{Balance,12:C} | {Rate,5:N}% | {Minimum,7:C} | {CurrentPayment,11:C}";
+        /// <inheritdoc />
+        public override string ToString() => ToString(DateTime.Today);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dateAsOf"></param>
+        /// <returns></returns>
+        public string ToString(DateTime dateAsOf) => $"Name: {Name}\n" +
+                                                     $"{"Balance".PadRight(12)} | % Rate | Minimum | Max Payment\n" +
+                                                     "---------------------------------------------\n" +
+                                                     $"{Balance,12:C} | {GetInterestRate(dateAsOf),5:N}% | {GetMinimum(dateAsOf),7:C} | {GetCurrentPayment(dateAsOf),11:C}";
     }
 }

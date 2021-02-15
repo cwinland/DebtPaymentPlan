@@ -20,7 +20,7 @@ namespace DebtPlannerTests
         {
             var i = new DebtInfo(name, (decimal)balance, (decimal)rate, (decimal)min);
             i.Should().NotBeNull();
-            i.MinimumPercent.Should().Be(Math.Round((decimal)min / (decimal)balance, 5));
+            i.MinimumPercent().Should().Be(Math.Round((decimal)min / (decimal)balance, 5));
         }
 
         [TestMethod]
@@ -36,7 +36,7 @@ namespace DebtPlannerTests
             var i = new DebtInfo(name, (decimal)balance, (decimal)rate, (decimal)min);
             i.Should().NotBeNull();
 
-            i.CurrentPayment.Should().Be(i.Balance > 0 ? i.Minimum + i.AdditionalPayment : 0);
+            i.GetCurrentPayment().Should().Be(i.Balance > 0 ? i.GetMinimum() + i.AdditionalPayment : 0);
         }
 
         [TestMethod]
@@ -52,7 +52,7 @@ namespace DebtPlannerTests
             var i = new DebtInfo(name, (decimal)balance, (decimal)rate, (decimal)min);
             i.Should().NotBeNull();
 
-            i.CurrentPaymentReduction.Should().Be(i.CurrentPayment - i.AverageMonthlyInterest);
+            i.GetCurrentPaymentReduction().Should().Be(i.GetCurrentPayment() - i.GetAverageMonthlyInterest());
         }
 
         [TestMethod]
@@ -67,9 +67,10 @@ namespace DebtPlannerTests
         {
             var i = new DebtInfo(name, (decimal)balance, (decimal)rate, (decimal)min);
             i.Should().NotBeNull();
-            i.PayoffMonths.Should()
+            i.GetPayoffMonths()
+             .Should()
              .Be(i.Balance > 0
-                     ? (int)Math.Ceiling(i.Balance / i.CurrentPaymentReduction)
+                     ? (int)Math.Ceiling(i.Balance / i.GetCurrentPaymentReduction())
                      : 0);
         }
 
@@ -85,82 +86,68 @@ namespace DebtPlannerTests
         {
             var i = new DebtInfo(name, (decimal)balance, (decimal)rate, (decimal)min);
             i.Should().NotBeNull();
-            var newBalance = i.Balance - i.CurrentPaymentReduction;
+            var newBalance = i.Balance - i.GetCurrentPaymentReduction();
             i.ApplyPayment();
 
             i.Balance.Should().Be(DebtInfo.RoundUp(newBalance, 2));
         }
 
         [TestMethod]
-        [DataRow("A", 10000, 400, 5.25, 28)]
-        [DataRow("B", 8000, 350, 2, 24)]
-        [DataRow("C", 6000, 200, 3.5, 34)]
-        [DataRow("D", 4000, 200, 12.25, 25)]
-        [DataRow("E", 2000, 200, 15.55, 12)]
-        [DataRow("F", 1000, 55, 10.25, 22)]
-        [DataRow("G", 500, 100, 22, 6)]
-        public void Create_PayoffNumberMonths(string name, double balance, double min, double rate, int expected)
-        {
-            var i = new DebtInfo(name, (decimal)balance, (decimal)rate, (decimal)min);
-            i.Should().NotBeNull();
-            i.PayoffMonths.Should().Be(expected);
-        }
-
-        [TestMethod]
-        [DataRow("A", 10000, 400, 5.25, 335)]
-        [DataRow("B", 8000, 350, 2, 286)]
-        [DataRow("C", 6000, 200, 3.5, 400)]
-        [DataRow("D", 4000, 200, 12.25, 301)]
-        [DataRow("E", 2000, 200, 15.55, 139)]
-        [DataRow("F", 1000, 55, 10.25, 258)]
-        [DataRow("G", 500, 100, 22, 67)]
-        public void Create_PayoffNumberDays(string name, double balance, double min, double rate, int expected)
-        {
-            var i = new DebtInfo(name, (decimal)balance, (decimal)rate, (decimal)min);
-            i.Should().NotBeNull();
-            i.PayoffDays.Should().Be(expected);
-        }
-
-        //[TestMethod]
-        //[DataRow("A", 10000, 400, 5.25, 337)]
-        //[DataRow("B", 8000, 350, 2, 286)]
-        //[DataRow("C", 6000, 200, 3.5, 395)]
-        //[DataRow("D", 4000, 200, 12.25, 302)]
-        //[DataRow("E", 2000, 200, 15.55, 138)]
-        //[DataRow("F", 1000, 55, 10.25, 259)]
-        //[DataRow("G", 500, 100, 22, 67)]
-        //public void GetAmortization(string name, double balance, double min, double rate, int expected)
-        //{
-        //    var i = new DebtInfo(name, (decimal)balance, (decimal)rate, (decimal)min);
-        //    var list = i.GetAmortization();
-        //    list.Count.Should().BeGreaterThan(0);
-        //    Console.WriteLine(i);
-        //    Console.WriteLine(
-        //        $"\n{"Payment".PadRight(10)} | {"Interest".PadRight(8)} | {"Applied".PadRight(10)} | Remaining" +
-        //        "\n-------------------------------------------------");
-        //    list.ForEach(Console.WriteLine);
-        //}
-
-        [TestMethod]
         public void CheckMinimumPayment()
         {
-            b8.ForceMinPayment = false;
-            var am = b8.GetAmortization(1)[0];
-            am.AppliedPayment.Should().BeLessThan(am.Interest);
-            b8.ForceMinPayment = true;
-            var am2 = b8.GetAmortization(1)[0];
-            am2.AppliedPayment.Should().BeGreaterOrEqualTo(am.Interest / 2);
+            var info = new DebtInfo("A", 16000, 3.25M, 225, 225, false, null);
+            var am = info.GetAmortization(1)[0];
+            am.Payment.Should().Be(info.OriginalMinimum);
+            info.ForceMinPayment = true;
+            var am2 = info.GetAmortization(1)[0];
+            am2.Payment.Should().BeGreaterOrEqualTo(info.OriginalMinimum);
         }
 
         [TestMethod]
         public void MinimumTooLow()
         {
-            Func<DebtInfo> act = () => new DebtInfo("tooLow", 100000M, 20M, 1, false);
+            Func<DebtInfo> act = () => new DebtInfo("tooLow", 100000M, 20M, 1, 1, false, null);
             act.Should().Throw<ArgumentOutOfRangeException>();
 
             Func<DebtInfo> act2 = () => new DebtInfo("tooLow", 100000M, 20M, 1);
             act2.Should().NotThrow<ArgumentOutOfRangeException>();
-            act2().Minimum.Should().BeGreaterThan(1);
+            act2().GetMinimum().Should().BeGreaterThan(1);
+        }
+
+        [TestMethod]
+        public void CalendarInterestRate()
+        {
+            var info = new DebtInfo("Test", 12345, 0, 100);
+            info.GetInterestRate().Should().Be(0);
+
+            info.SetInterestRate(3.25M);
+            info.SetInterestRate(4.5M, DateTime.Parse("3/15/2021"));
+            info.SetInterestRate(12M, DateTime.Parse("4/15/2021"));
+            info.SetInterestRate(0, DateTime.Parse("12/30/2022"));
+
+            info.GetInterestRate().Should().Be(3.25M);
+
+            info.GetInterestRate(DateTime.Parse("3/14/2021")).Should().Be(3.25M);
+            info.GetInterestRate(DateTime.Parse("3/15/2021")).Should().Be(4.5M);
+            info.GetInterestRate(DateTime.Parse("4/15/2021")).Should().Be(12M);
+            info.GetInterestRate(DateTime.Parse("5/15/2021")).Should().Be(12M);
+            info.GetInterestRate(DateTime.Parse("6/15/2021")).Should().Be(12M);
+            info.GetInterestRate(DateTime.Parse("7/15/2021")).Should().Be(12M);
+            info.GetInterestRate(DateTime.Parse("12/30/2021")).Should().Be(12M);
+            info.GetInterestRate(DateTime.Parse("12/30/2022")).Should().Be(0);
+            info.GetInterestRate(DateTime.Parse("1/2/2023")).Should().Be(0);
+        }
+
+        [TestMethod]
+        public void TestScheduleWithRateChanges()
+        {
+            var info = new DebtInfo("Test", 12345, 0, 100);
+            info.SetInterestRate(3.25M);
+            info.SetInterestRate(4.5M, DateTime.Parse("3/15/2021"));
+            info.SetInterestRate(12M, DateTime.Parse("4/15/2021"));
+            info.SetInterestRate(0, DateTime.Parse("12/30/2022"));
+
+            Console.WriteLine(info.GetAmortization());
         }
     }
 }
